@@ -1,5 +1,5 @@
 /// Represents a postal address in the internal model
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Address {
     pub floor: Option<String>,
     pub post_box: Option<String>,
@@ -32,6 +32,21 @@ impl Address {
             town_location_name,
             post_code,
             country,
+        }
+    }
+
+    #[cfg(test)]
+    /// Create a dummy [Address]
+    pub fn dummy() -> Self {
+        Self {
+            floor: None,
+            post_box: None,
+            room: None,
+            street_name: "123 Main St".to_string(),
+            town_name: "Anytown".to_string(),
+            town_location_name: None,
+            post_code: "12345".to_string(),
+            country: "FR".to_string(),
         }
     }
 }

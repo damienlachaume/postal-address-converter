@@ -5,6 +5,7 @@
 //! TODO
 
 mod domain;
+mod repository;
 
 pub use domain::Address;
 

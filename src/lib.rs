@@ -1,5 +1,9 @@
 #![warn(missing_docs)]
 
+//! # Postal Address Converter
+//!
+//! TODO
+
 mod domain;
 
 pub use domain::Address;

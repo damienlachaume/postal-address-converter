@@ -1,0 +1,10 @@
+name: Setup Rust Environment
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install stable toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+        components: clippy, rustfmt

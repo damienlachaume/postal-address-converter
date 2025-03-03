@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: ./.github/workflows/actions/setup-rust
+
+      - name: Cargo build
+        run: cargo build --release
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: ./.github/workflows/actions/setup-rust
+
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Cargo test
+        run: cargo nextest run
+
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: ./.github/workflows/actions/setup-rust
+
+      - name: Install Cargo sort
+        uses: taiki-e/install-action@cargo-sort
+
+      - name: Clippy Check
+        run: cargo clippy -- -D warnings
+
+      - name: Cargo fmt
+        run: cargo fmt --check
+
+      - name: Cargo sort
+        run: cargo sort -w -c

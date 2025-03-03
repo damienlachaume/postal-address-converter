@@ -5,9 +5,7 @@ use std::{
 
 use anyhow::anyhow;
 
-use crate::{AnyhowResult, domain::Address};
-
-use super::AddressRepository;
+use crate::{AnyhowResult, domain::Address, use_cases::AddressRepository};
 
 pub struct InMemoryAddressRepository {
     addresses: Arc<Mutex<HashMap<String, Address>>>,

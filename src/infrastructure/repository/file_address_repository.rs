@@ -9,9 +9,7 @@ use std::{
 use anyhow::{Context, anyhow};
 use serde::{Deserialize, Serialize};
 
-use crate::{AnyhowResult, domain::Address};
-
-use super::AddressRepository;
+use crate::{AddressRepository, AnyhowResult, domain::Address};
 
 #[derive(Serialize, Deserialize, Default)]
 struct AddressesData {

@@ -1,4 +1,4 @@
-use crate::{AnyhowResult, domain::Address};
+use crate::{Address, AnyhowResult};
 
 pub trait AddressRepository {
     fn get(&self, id: &str) -> AnyhowResult<Option<Address>>;
@@ -7,10 +7,3 @@ pub trait AddressRepository {
     fn update(&self, id: &str, address: &Address) -> AnyhowResult<()>;
     fn delete(&self, id: &str) -> AnyhowResult<()>;
 }
-
-mod file_address_repository;
-mod in_memory_address_repository;
-
-pub use file_address_repository::*;
-#[cfg(test)]
-pub use in_memory_address_repository::*;

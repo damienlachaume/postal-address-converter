@@ -5,9 +5,12 @@
 //! TODO
 
 mod domain;
-mod repository;
+mod infrastructure;
+mod use_cases;
 
-pub use domain::Address;
+pub use domain::*;
+pub use infrastructure::*;
+pub use use_cases::*;
 
 /// Alias for [anyhow::Error]
 pub type AnyhowError = anyhow::Error;

@@ -16,12 +16,14 @@ struct AddressesData {
     addresses: HashMap<String, Address>,
 }
 
+/// Repository for managing addresses in a file
 pub struct FileAddressRepository {
     file_path: PathBuf,
     cache: Arc<RwLock<HashMap<String, Address>>>,
 }
 
 impl FileAddressRepository {
+    /// Create a new [FileAddressRepository]
     pub fn new<P: AsRef<Path>>(file_path: P) -> AnyhowResult<Self> {
         let file_path = file_path.as_ref().to_path_buf();
 

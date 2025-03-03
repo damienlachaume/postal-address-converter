@@ -6,10 +6,12 @@
 
 mod domain;
 mod infrastructure;
+pub mod presenter;
 mod use_cases;
 
 pub use domain::*;
 pub use infrastructure::*;
+pub use presenter::*;
 pub use use_cases::*;
 
 /// Alias for [anyhow::Error]

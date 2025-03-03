@@ -7,15 +7,23 @@ use anyhow::anyhow;
 
 use crate::{AnyhowResult, domain::Address, use_cases::AddressRepository};
 
+/// Repository for managing addresses in memory
 pub struct InMemoryAddressRepository {
     addresses: Arc<Mutex<HashMap<String, Address>>>,
 }
 
 impl InMemoryAddressRepository {
-    pub fn new() -> Self {
+    /// Create a new [InMemoryAddressRepository]
+    fn new() -> Self {
         Self {
             addresses: Arc::new(Mutex::new(HashMap::new())),
         }
+    }
+}
+
+impl Default for InMemoryAddressRepository {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

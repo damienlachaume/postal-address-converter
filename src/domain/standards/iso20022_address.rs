@@ -1,10 +1,11 @@
 use anyhow::anyhow;
 use celes::Country;
+use serde::{Deserialize, Serialize};
 
 use crate::{AnyhowError, AnyhowResult, domain::Address};
 
 /// Represents an ISO 20022 postal address
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct ISO20022Address {
     /// Identification of a division of a large organization or building
     pub department: Option<String>,
@@ -47,43 +48,6 @@ pub struct ISO20022Address {
 
     /// Nation with its own government (ISO country code)
     pub country: String,
-}
-
-impl ISO20022Address {
-    /// Create a new ISO 20022 address
-    pub fn new(
-        department: Option<String>,
-        sub_department: Option<String>,
-        street_name: String,
-        building_number: Option<String>,
-        building_name: Option<String>,
-        floor: Option<String>,
-        post_box: Option<String>,
-        room: Option<String>,
-        post_code: String,
-        town_name: String,
-        town_location_name: Option<String>,
-        district_name: Option<String>,
-        country_sub_division: Option<String>,
-        country: String,
-    ) -> Self {
-        Self {
-            department,
-            sub_department,
-            street_name,
-            building_number,
-            building_name,
-            floor,
-            post_box,
-            room,
-            post_code,
-            town_name,
-            town_location_name,
-            district_name,
-            country_sub_division,
-            country,
-        }
-    }
 }
 
 impl From<Address> for ISO20022Address {

@@ -1,0 +1,123 @@
+use std::{path::PathBuf, sync::Arc};
+
+use clap::{Parser, Subcommand, ValueEnum};
+
+use crate::{AddressService, AnyhowResult, infrastructure::FileAddressRepository};
+
+use super::AddressHandler;
+
+#[derive(Parser)]
+#[clap(
+    name = "postal-address-converter",
+    version,
+    about = "Convert and manage postal addresses"
+)]
+struct Cli {
+    /// Path to the address database file
+    #[clap(short, long, default_value = "addresses.json")]
+    database: PathBuf,
+
+    #[clap(subcommand)]
+    command: Command,
+}
+
+/// Address format
+#[derive(ValueEnum, Clone, Debug)]
+pub enum AddressFormat {
+    /// French address format
+    French,
+
+    /// ISO 20022 address format
+    Iso20022,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    /// Add a new address
+    Add {
+        /// Address identifier
+        #[clap(short, long)]
+        id: String,
+
+        /// Address format (french or iso20022)
+        #[clap(short, long, value_enum)]
+        format: AddressFormat,
+
+        /// Address data as JSON string
+        #[clap(short, long)]
+        data: String,
+    },
+
+    /// Get an address by ID
+    Get {
+        /// Address identifier
+        #[clap(short, long)]
+        id: String,
+
+        /// Output format (french or iso20022)
+        #[clap(short, long, value_enum)]
+        format: Option<AddressFormat>,
+    },
+
+    /// List all addresses
+    List {
+        /// Output format (french or iso20022)
+        #[clap(short, long, value_enum)]
+        format: Option<AddressFormat>,
+    },
+
+    /// Update an existing address
+    Update {
+        /// Address identifier
+        #[clap(short, long)]
+        id: String,
+
+        /// Address format (french or iso20022)
+        #[clap(short, long, value_enum)]
+        format: AddressFormat,
+
+        /// Address data as JSON string
+        #[clap(short, long)]
+        data: String,
+    },
+
+    /// Delete an address
+    Delete {
+        /// Address identifier
+        #[clap(short, long)]
+        id: String,
+    },
+    // /// Convert an address between formats
+    // Convert {
+    //     /// Source JSON data
+    //     #[clap(short, long)]
+    //     data: String,
+
+    //     /// Source format (french or iso20022)
+    //     #[clap(short, long, value_enum)]
+    //     from: Format,
+
+    //     /// Target format (french or iso20022)
+    //     #[clap(short, long, value_enum)]
+    //     to: Format,
+    // },
+}
+
+/// Run the CLI
+pub fn run() -> AnyhowResult<()> {
+    let cli = Cli::parse();
+    let repository = Arc::new(FileAddressRepository::new(&cli.database)?);
+    let service = AddressService::new(repository);
+    let handler = AddressHandler::new(service);
+
+    match cli.command {
+        Command::Get { id, format } => handler.get(id, format),
+        Command::List { format } => handler.list(format),
+        Command::Add { id, format, data } => handler.add(format, id, data),
+        Command::Update { id, format, data } => handler.update(format, id, data),
+        Command::Delete { id } => handler.delete(id),
+        // Command::Convert { data, from, to } => {
+        //     handlers::handle_convert(data, from.as_str(), to.as_str())
+        // }
+    }
+}

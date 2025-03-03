@@ -1,5 +1,6 @@
 use anyhow::{Context, anyhow};
 use celes::Country;
+use serde::{Deserialize, Serialize};
 
 use crate::{AnyhowError, AnyhowResult, domain::Address};
 
@@ -7,7 +8,7 @@ type TownName = String;
 type PostCode = String;
 
 /// Represents a French postal address (NF Z10-011)
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FrenchAddress {
     /// Line 1: Recipient identity
     name: String,
@@ -57,7 +58,7 @@ impl FrenchAddress {
 impl TryFrom<FrenchAddress> for Address {
     type Error = AnyhowError;
 
-    fn try_from(french_address: FrenchAddress) -> AnyhowResult<Self> {
+    fn try_from(french_address: FrenchAddress) -> AnyhowResult<Address> {
         let (post_code, town_name) = split_postal_info(french_address.postal_info)
             .with_context(|| "Failed to split postal info")?;
 
@@ -78,6 +79,28 @@ impl TryFrom<FrenchAddress> for Address {
         };
 
         Ok(address)
+    }
+}
+
+impl TryFrom<Address> for FrenchAddress {
+    type Error = AnyhowError;
+
+    // TODO: test this conversion
+    fn try_from(address: Address) -> AnyhowResult<Self> {
+        let country = Country::from_alpha2(&address.country)
+            .map_err(|e| anyhow!(e).context("Failed to convert country name to ISO code"))?;
+
+        let postal_info = format!("{} {}", address.post_code, address.town_name);
+
+        Ok(FrenchAddress::new(
+            "".to_string(),
+            address.room,
+            address.floor,
+            address.street_name,
+            address.town_location_name,
+            postal_info,
+            country.long_name.to_string(),
+        ))
     }
 }
 

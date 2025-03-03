@@ -14,29 +14,6 @@ pub struct Address {
 }
 
 impl Address {
-    /// Constructor for an [Address]
-    pub fn new(
-        floor: Option<String>,
-        post_box: Option<String>,
-        room: Option<String>,
-        street_name: String,
-        town_name: String,
-        town_location_name: Option<String>,
-        post_code: String,
-        country: String,
-    ) -> Self {
-        Self {
-            floor,
-            post_box,
-            room,
-            street_name,
-            town_name,
-            town_location_name,
-            post_code,
-            country,
-        }
-    }
-
     #[cfg(test)]
     /// Create a dummy [Address]
     pub fn dummy() -> Self {

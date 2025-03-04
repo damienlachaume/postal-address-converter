@@ -68,12 +68,13 @@ impl TryFrom<FrenchAddress> for Address {
             .to_string();
 
         let address = Address {
+            name: Some(french_address.name),
             floor: french_address.geographic_info,
             post_box: None,
             room: french_address.recipient_info,
             street_name: french_address.street,
             town_name,
-            town_location_name: None,
+            town_location_name: french_address.special_mentions,
             post_code,
             country: country_code,
         };
@@ -85,15 +86,14 @@ impl TryFrom<FrenchAddress> for Address {
 impl TryFrom<Address> for FrenchAddress {
     type Error = AnyhowError;
 
-    // TODO: test this conversion
-    fn try_from(address: Address) -> AnyhowResult<Self> {
+    fn try_from(address: Address) -> AnyhowResult<FrenchAddress> {
         let country = Country::from_alpha2(&address.country)
             .map_err(|e| anyhow!(e).context("Failed to convert country name to ISO code"))?;
 
         let postal_info = format!("{} {}", address.post_code, address.town_name);
 
         Ok(FrenchAddress::new(
-            "".to_string(),
+            address.name.ok_or(anyhow!("Name is required"))?,
             address.room,
             address.floor,
             address.street_name,
@@ -144,8 +144,8 @@ mod tests {
     }
 
     #[test]
-    fn convert_french_address_to_internal_with_empty_lines() {
-        let french_address = FrenchAddress::new(
+    fn convert_french_address_internal_simple() {
+        let initial_french_address = FrenchAddress::new(
             "Monsieur Jean DURAND".to_string(),
             None,
             None,
@@ -155,11 +155,12 @@ mod tests {
             "France".to_string(),
         );
 
-        let address: Address = french_address.try_into().unwrap();
+        let internal_address: Address = initial_french_address.clone().try_into().unwrap();
 
         assert_eq!(
-            address,
+            internal_address,
             Address {
+                name: Some("Monsieur Jean DURAND".to_string()),
                 floor: None,
                 post_box: None,
                 room: None,
@@ -170,11 +171,15 @@ mod tests {
                 country: "FR".to_string(),
             }
         );
+
+        let french_address_from_internal: FrenchAddress = internal_address.try_into().unwrap();
+
+        assert_eq!(french_address_from_internal, initial_french_address);
     }
 
     #[test]
-    fn convert_french_address_to_internal_without_empty_lines() {
-        let french_address = FrenchAddress::new(
+    fn convert_french_address_internal_extended() {
+        let initial_french_address = FrenchAddress::new(
             "Monsieur Jean DELHOURME".to_string(),
             Some("Chez Mireille COPEAU Appartement 2".to_string()),
             Some("Entrée A Bâtiment Jonquille".to_string()),
@@ -184,20 +189,43 @@ mod tests {
             "France".to_string(),
         );
 
-        let address: Address = french_address.try_into().unwrap();
+        let internal: Address = initial_french_address.clone().try_into().unwrap();
 
         assert_eq!(
-            address,
+            internal,
             Address {
+                name: Some("Monsieur Jean DELHOURME".to_string()),
                 floor: Some("Entrée A Bâtiment Jonquille".to_string()),
                 post_box: None,
                 room: Some("Chez Mireille COPEAU Appartement 2".to_string()),
                 street_name: "25 RUE DE L’EGLISE".to_string(),
                 town_name: "MIOS".to_string(),
-                town_location_name: None,
+                town_location_name: Some("CAUDOS".to_string()),
                 post_code: "33380".to_string(),
                 country: "FR".to_string(),
             },
         );
+
+        let french_address_from_internal: FrenchAddress = internal.try_into().unwrap();
+
+        assert_eq!(french_address_from_internal, initial_french_address);
+    }
+
+    #[test]
+    fn convert_french_address_internal_returns_error_when_name_is_missing() {
+        let internal = Address {
+            name: None,
+            floor: None,
+            post_box: None,
+            room: None,
+            street_name: "25D RUE DES FLEURS".to_string(),
+            town_name: "LIBOURNE".to_string(),
+            town_location_name: None,
+            post_code: "33500".to_string(),
+            country: "FR".to_string(),
+        };
+
+        let result: AnyhowResult<FrenchAddress> = internal.try_into();
+        assert!(result.is_err());
     }
 }

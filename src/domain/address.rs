@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 /// Represents a postal address in the internal model
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Address {
+    /// Name of the recipient
+    pub name: Option<String>,
+
     /// Floor
     pub floor: Option<String>,
 
@@ -33,6 +36,7 @@ impl Address {
     /// Create a dummy [Address]
     pub fn dummy() -> Self {
         Self {
+            name: Some("John Doe".to_string()),
             floor: None,
             post_box: None,
             room: None,

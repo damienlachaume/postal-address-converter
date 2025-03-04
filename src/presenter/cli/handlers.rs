@@ -1,7 +1,9 @@
 use anyhow::{Context, Result};
 use uuid::Uuid;
 
-use crate::{AddressService, FrenchAddress, ISO20022Address};
+use crate::{
+    AddressService, FrenchAddress, ISO20022Address, format_french_address, format_iso20022_address,
+};
 
 use super::AddressFormat;
 
@@ -16,65 +18,65 @@ impl AddressHandler {
         Self { service }
     }
 
-    /// Get an address by id
+    /// Get an address by id and format it accordingly.
     pub fn get(&self, id: Uuid, address_format: Option<AddressFormat>) -> Result<()> {
         let address = self
             .service
             .get(id)?
             .ok_or(anyhow::anyhow!("Address not found"))?;
 
-        let address_json = match address_format {
+        let formatted_output = match address_format {
             Some(AddressFormat::French) => {
-                let address: FrenchAddress = address.try_into()?;
-
-                serde_json::to_string_pretty(&address)?
+                let french: FrenchAddress = address.try_into()?;
+                format_french_address(&french)
             }
             Some(AddressFormat::Iso20022) => {
-                let address: ISO20022Address = address.into();
-
-                serde_json::to_string_pretty(&address)?
+                let iso: ISO20022Address = address.into();
+                format_iso20022_address(&iso)
             }
             None => serde_json::to_string_pretty(&address)?,
         };
 
-        println!("{:?}", address_json);
+        println!("{}", formatted_output);
 
         Ok(())
     }
 
-    /// List all addresses
+    /// List all addresses and format them accordingly.
     pub fn list(&self, address_format: Option<AddressFormat>) -> Result<()> {
         let addresses = self
             .service
             .list()
             .with_context(|| "Failed to list addresses")?;
 
-        let addresses_json = match address_format {
+        let formatted_output = match address_format {
             Some(AddressFormat::French) => {
-                let addresses: Vec<(Uuid, FrenchAddress)> = addresses
+                let addresses: Vec<(Uuid, String)> = addresses
                     .iter()
                     .map(|(id, address)| {
+                        // Convert the internal address into FrenchAddress and format it.
                         address
                             .clone()
                             .try_into()
-                            .map(|french_address| (*id, french_address))
+                            .map(|french: FrenchAddress| (*id, format_french_address(&french)))
                     })
                     .collect::<Result<_, _>>()?;
-
-                serde_json::to_vec_pretty(&addresses)?
+                serde_json::to_string_pretty(&addresses)?
             }
             Some(AddressFormat::Iso20022) => {
-                let addresses: Vec<(Uuid, ISO20022Address)> = addresses
+                let addresses: Vec<(Uuid, String)> = addresses
                     .iter()
-                    .map(|(id, address)| Ok((*id, address.clone().into())))
+                    .map(|(id, address)| {
+                        // Convert the internal address into ISO20022Address and format it.
+                        Ok((*id, format_iso20022_address(&address.clone().into())))
+                    })
                     .collect::<Result<_, anyhow::Error>>()?;
-
-                serde_json::to_vec_pretty(&addresses)?
+                serde_json::to_string_pretty(&addresses)?
             }
-            None => serde_json::to_vec_pretty(&addresses)?,
+            None => serde_json::to_string_pretty(&addresses)?,
         };
 
-        println!("{:?}", addresses_json);
+        println!("{}", formatted_output);
 
         Ok(())
     }

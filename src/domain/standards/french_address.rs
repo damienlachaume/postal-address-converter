@@ -11,25 +11,25 @@ type PostCode = String;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FrenchAddress {
     /// Line 1: Recipient identity
-    name: String,
+    pub name: String,
 
     /// Line 2: Additional identification of recipient or delivery point
-    recipient_info: Option<String>,
+    pub recipient_info: Option<String>,
 
     /// Line 3: Additional geographic point identification (entrance, building, residence)
-    geographic_info: Option<String>,
+    pub geographic_info: Option<String>,
 
     /// Line 4: Street number and name
-    street: String,
+    pub street: String,
 
     /// Line 5: Locality or special distribution service
-    special_mentions: Option<String>,
+    pub special_mentions: Option<String>,
 
     /// Line 6: Postal code and destination locality
-    postal_info: String,
+    pub postal_info: String,
 
     /// Line 7: Country name
-    country: String,
+    pub country: String,
 }
 
 impl FrenchAddress {

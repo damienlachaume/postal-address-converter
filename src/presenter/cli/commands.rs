@@ -23,7 +23,7 @@ struct Cli {
 }
 
 /// Address format
-#[derive(ValueEnum, Clone, Debug)]
+#[derive(ValueEnum, Clone, Debug, PartialEq, Eq)]
 pub enum AddressFormat {
     /// French address format
     French,
@@ -84,20 +84,21 @@ enum Command {
         #[clap(short, long)]
         id: String,
     },
-    // /// Convert an address between formats
-    // Convert {
-    //     /// Source JSON data
-    //     #[clap(short, long)]
-    //     data: String,
 
-    //     /// Source format (french or iso20022)
-    //     #[clap(short, long, value_enum)]
-    //     from: Format,
+    /// Convert an address between formats (not implemented yet)
+    Convert {
+        /// Source
+        #[clap(short, long)]
+        data: String,
 
-    //     /// Target format (french or iso20022)
-    //     #[clap(short, long, value_enum)]
-    //     to: Format,
-    // },
+        /// Source format
+        #[clap(short, long, value_enum)]
+        from: AddressFormat,
+
+        /// Target format
+        #[clap(short, long, value_enum)]
+        to: AddressFormat,
+    },
 }
 
 /// Run the CLI
@@ -113,8 +114,6 @@ pub fn run() -> AnyhowResult<()> {
         Command::Add { format, data } => handler.add(format, data),
         Command::Update { id, format, data } => handler.update(format, Uuid::from_str(&id)?, data),
         Command::Delete { id } => handler.delete(Uuid::from_str(&id)?),
-        // Command::Convert { data, from, to } => {
-        //     handlers::handle_convert(data, from.as_str(), to.as_str())
-        // }
+        Command::Convert { data, from, to } => handler.convert(data, from, to),
     }
 }

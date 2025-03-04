@@ -1,8 +1,9 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use uuid::Uuid;
 
 use crate::{
-    AddressService, FrenchAddress, ISO20022Address, format_french_address, format_iso20022_address,
+    AddressConverter, AddressService, AnyhowResult, FrenchAddress, ISO20022Address,
+    format_french_address, format_iso20022_address,
 };
 
 use super::AddressFormat;
@@ -19,7 +20,7 @@ impl AddressHandler {
     }
 
     /// Get an address by id and format it accordingly.
-    pub fn get(&self, id: Uuid, address_format: Option<AddressFormat>) -> Result<()> {
+    pub fn get(&self, id: Uuid, address_format: Option<AddressFormat>) -> AnyhowResult<()> {
         let address = self
             .service
             .get(id)?
@@ -43,7 +44,7 @@ impl AddressHandler {
     }
 
     /// List all addresses and format them accordingly.
-    pub fn list(&self, address_format: Option<AddressFormat>) -> Result<()> {
+    pub fn list(&self, address_format: Option<AddressFormat>) -> AnyhowResult<()> {
         let addresses = self
             .service
             .list()
@@ -82,7 +83,7 @@ impl AddressHandler {
     }
 
     /// Add a new address
-    pub fn add(&self, address_format: AddressFormat, data: String) -> Result<()> {
+    pub fn add(&self, address_format: AddressFormat, data: String) -> AnyhowResult<()> {
         let address = match address_format {
             AddressFormat::French => {
                 let address: FrenchAddress = serde_json::from_str(&data)?;
@@ -104,7 +105,12 @@ impl AddressHandler {
     }
 
     /// Update an address
-    pub fn update(&self, address_format: AddressFormat, id: Uuid, data: String) -> Result<()> {
+    pub fn update(
+        &self,
+        address_format: AddressFormat,
+        id: Uuid,
+        data: String,
+    ) -> AnyhowResult<()> {
         let address = match address_format {
             AddressFormat::French => {
                 let address: FrenchAddress = serde_json::from_str(&data)?;
@@ -134,6 +140,40 @@ impl AddressHandler {
             .with_context(|| "Failed to delete address")?;
 
         println!("Address deleted with id: {}", id);
+
+        Ok(())
+    }
+
+    /// Convert an address between formats
+    pub fn convert(
+        &self,
+        data: String,
+        from: AddressFormat,
+        to: AddressFormat,
+    ) -> AnyhowResult<()> {
+        if from == to {
+            return Err(anyhow!("Source and target formats are the same"));
+        }
+
+        match (from, to) {
+            (AddressFormat::French, AddressFormat::Iso20022) => {
+                let address: FrenchAddress = serde_json::from_str(&data)?;
+                let iso: ISO20022Address = AddressConverter::french_to_iso(address)?;
+                let formatted_output = format_iso20022_address(&iso);
+
+                println!("{}", formatted_output);
+            }
+            (AddressFormat::Iso20022, AddressFormat::French) => {
+                let address: ISO20022Address = serde_json::from_str(&data)?;
+                let french: FrenchAddress = AddressConverter::iso_to_french(address)?;
+                let formatted_output = format_french_address(&french);
+
+                println!("{}", formatted_output);
+            }
+            _ => {
+                return Err(anyhow!("Unsupported format conversion"));
+            }
+        }
 
         Ok(())
     }

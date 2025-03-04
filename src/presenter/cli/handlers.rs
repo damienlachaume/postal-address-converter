@@ -1,10 +1,7 @@
 use anyhow::{Context, Result, anyhow};
 use uuid::Uuid;
 
-use crate::{
-    AddressConverter, AddressService, AnyhowResult, FrenchAddress, ISO20022Address,
-    format_french_address, format_iso20022_address,
-};
+use crate::{AddressConverter, AddressService, AnyhowResult, FrenchAddress, ISO20022Address};
 
 use super::AddressFormat;
 
@@ -29,11 +26,11 @@ impl AddressHandler {
         let formatted_output = match address_format {
             Some(AddressFormat::French) => {
                 let french: FrenchAddress = address.try_into()?;
-                format_french_address(&french)
+                format!("id: {id}\n{french}")
             }
             Some(AddressFormat::Iso20022) => {
                 let iso: ISO20022Address = address.into();
-                format_iso20022_address(&iso)
+                format!("id: {id}\n{iso}")
             }
             None => serde_json::to_string_pretty(&address)?,
         };
@@ -52,29 +49,32 @@ impl AddressHandler {
 
         let formatted_output = match address_format {
             Some(AddressFormat::French) => {
-                let addresses: Vec<(Uuid, String)> = addresses
+                let addresses: Vec<String> = addresses
                     .iter()
                     .map(|(id, address)| {
                         address
                             .clone()
                             .try_into()
-                            .map(|french: FrenchAddress| (*id, format_french_address(&french)))
+                            .map(|french: FrenchAddress| format!("id: {id}\n{french}"))
                     })
                     .collect::<Result<_, _>>()?;
-                serde_json::to_string_pretty(&addresses)?
+
+                addresses.join("\n\n")
             }
             Some(AddressFormat::Iso20022) => {
-                let addresses: Vec<(Uuid, String)> = addresses
+                let addresses: Vec<String> = addresses
                     .iter()
                     .map(|(id, address)| {
                         let iso: ISO20022Address = address.clone().into();
 
-                        Ok((*id, format_iso20022_address(&iso)))
+                        Ok(format!("id: {id}\n{iso}"))
                     })
                     .collect::<Result<_, anyhow::Error>>()?;
-                serde_json::to_string_pretty(&addresses)?
+
+                addresses.join("\n\n")
             }
-            None => serde_json::to_string_pretty(&addresses)?,
+            None => serde_json::to_string_pretty(&addresses)
+                .with_context(|| "Failed to list addresses")?,
         };
 
         println!("{}", formatted_output);
@@ -159,16 +159,14 @@ impl AddressHandler {
             (AddressFormat::French, AddressFormat::Iso20022) => {
                 let address: FrenchAddress = serde_json::from_str(&data)?;
                 let iso: ISO20022Address = AddressConverter::french_to_iso(address)?;
-                let formatted_output = format_iso20022_address(&iso);
 
-                println!("{}", formatted_output);
+                println!("{}", iso);
             }
             (AddressFormat::Iso20022, AddressFormat::French) => {
                 let address: ISO20022Address = serde_json::from_str(&data)?;
                 let french: FrenchAddress = AddressConverter::iso_to_french(address)?;
-                let formatted_output = format_french_address(&french);
 
-                println!("{}", formatted_output);
+                println!("{}", french);
             }
             _ => {
                 return Err(anyhow!("Unsupported format conversion"));

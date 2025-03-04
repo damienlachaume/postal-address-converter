@@ -1,3 +1,5 @@
+use std::fmt::{self, Display, Formatter};
+
 use anyhow::anyhow;
 use celes::Country;
 use serde::{Deserialize, Serialize};
@@ -62,6 +64,16 @@ pub struct ISO20022Address {
     /// Nation with its own government (ISO country code)
     #[serde(rename = "Ctry")]
     pub country: String,
+}
+
+impl Display for ISO20022Address {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "<PstlAdr>\n  <StrtNm>{}</StrtNm>\n  <PstCd>{}</PstCd>\n  <TwnNm>{}</TwnNm>\n  <Ctry>{}</Ctry>\n</PstlAdr>",
+            self.street_name, self.post_code, self.town_name, self.country
+        )
+    }
 }
 
 impl From<Address> for ISO20022Address {

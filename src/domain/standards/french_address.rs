@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 use anyhow::{Context, anyhow};
 use celes::Country;
 use serde::{Deserialize, Serialize};
@@ -52,6 +54,29 @@ impl FrenchAddress {
             postal_info,
             country,
         }
+    }
+}
+
+impl Display for FrenchAddress {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{}", self.name)?;
+
+        if let Some(ref recipient_info) = self.recipient_info {
+            writeln!(f, "{}", recipient_info)?;
+        }
+
+        if let Some(ref geographic_info) = self.geographic_info {
+            writeln!(f, "{}", geographic_info)?;
+        }
+
+        writeln!(f, "{}", self.street)?;
+
+        if let Some(ref special_mentions) = self.special_mentions {
+            writeln!(f, "{}", special_mentions)?;
+        }
+
+        writeln!(f, "{}", self.postal_info)?;
+        write!(f, "{}", self.country)
     }
 }
 

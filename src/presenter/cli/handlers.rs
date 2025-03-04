@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use uuid::Uuid;
 
 use crate::{AddressService, FrenchAddress, ISO20022Address};
 
@@ -16,10 +17,10 @@ impl AddressHandler {
     }
 
     /// Get an address by id
-    pub fn get(&self, id: String, address_format: Option<AddressFormat>) -> Result<()> {
+    pub fn get(&self, id: Uuid, address_format: Option<AddressFormat>) -> Result<()> {
         let address = self
             .service
-            .get(&id)?
+            .get(id)?
             .ok_or(anyhow::anyhow!("Address not found"))?;
 
         let address_json = match address_format {
@@ -50,18 +51,23 @@ impl AddressHandler {
 
         let addresses_json = match address_format {
             Some(AddressFormat::French) => {
-                let addresses: Vec<(String, FrenchAddress)> = addresses
+                let addresses: Vec<(Uuid, FrenchAddress)> = addresses
                     .iter()
-                    .map(|(id, address)| (id.clone(), address.clone().try_into().unwrap())) // TODO: Handle properly
-                    .collect();
+                    .map(|(id, address)| {
+                        address
+                            .clone()
+                            .try_into()
+                            .map(|french_address| (*id, french_address))
+                    })
+                    .collect::<Result<_, _>>()?;
 
                 serde_json::to_vec_pretty(&addresses)?
             }
             Some(AddressFormat::Iso20022) => {
-                let addresses: Vec<(String, ISO20022Address)> = addresses
+                let addresses: Vec<(Uuid, ISO20022Address)> = addresses
                     .iter()
-                    .map(|(id, address)| (id.clone(), address.clone().into())) // TODO: Handle properly
-                    .collect();
+                    .map(|(id, address)| Ok((*id, address.clone().into())))
+                    .collect::<Result<_, anyhow::Error>>()?;
 
                 serde_json::to_vec_pretty(&addresses)?
             }
@@ -74,7 +80,7 @@ impl AddressHandler {
     }
 
     /// Add a new address
-    pub fn add(&self, address_format: AddressFormat, id: String, data: String) -> Result<()> {
+    pub fn add(&self, address_format: AddressFormat, data: String) -> Result<()> {
         let address = match address_format {
             AddressFormat::French => {
                 let address: FrenchAddress = serde_json::from_str(&data)?;
@@ -88,7 +94,7 @@ impl AddressHandler {
             }
         };
 
-        self.service.add(&id, &address)?;
+        let id = self.service.add(&address)?;
 
         println!("Address added with id: {}", id);
 
@@ -96,7 +102,7 @@ impl AddressHandler {
     }
 
     /// Update an address
-    pub fn update(&self, address_format: AddressFormat, id: String, data: String) -> Result<()> {
+    pub fn update(&self, address_format: AddressFormat, id: Uuid, data: String) -> Result<()> {
         let address = match address_format {
             AddressFormat::French => {
                 let address: FrenchAddress = serde_json::from_str(&data)?;
@@ -111,7 +117,7 @@ impl AddressHandler {
         };
 
         self.service
-            .update(&id, &address)
+            .update(id, &address)
             .with_context(|| "Failed to update address")?;
 
         println!("Address updated with id: {}", id);
@@ -120,9 +126,9 @@ impl AddressHandler {
     }
 
     /// Delete an address
-    pub fn delete(&self, id: String) -> Result<()> {
+    pub fn delete(&self, id: Uuid) -> Result<()> {
         self.service
-            .delete(&id)
+            .delete(id)
             .with_context(|| "Failed to delete address")?;
 
         println!("Address deleted with id: {}", id);

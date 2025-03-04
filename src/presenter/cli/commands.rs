@@ -1,6 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, str::FromStr, sync::Arc};
 
 use clap::{Parser, Subcommand, ValueEnum};
+use uuid::Uuid;
 
 use crate::{AddressService, AnyhowResult, infrastructure::FileAddressRepository};
 
@@ -35,10 +36,6 @@ pub enum AddressFormat {
 enum Command {
     /// Add a new address
     Add {
-        /// Address identifier
-        #[clap(short, long)]
-        id: String,
-
         /// Address format (french or iso20022)
         #[clap(short, long, value_enum)]
         format: AddressFormat,
@@ -111,11 +108,11 @@ pub fn run() -> AnyhowResult<()> {
     let handler = AddressHandler::new(service);
 
     match cli.command {
-        Command::Get { id, format } => handler.get(id, format),
+        Command::Get { id, format } => handler.get(Uuid::from_str(&id)?, format),
         Command::List { format } => handler.list(format),
-        Command::Add { id, format, data } => handler.add(format, id, data),
-        Command::Update { id, format, data } => handler.update(format, id, data),
-        Command::Delete { id } => handler.delete(id),
+        Command::Add { format, data } => handler.add(format, data),
+        Command::Update { id, format, data } => handler.update(format, Uuid::from_str(&id)?, data),
+        Command::Delete { id } => handler.delete(Uuid::from_str(&id)?),
         // Command::Convert { data, from, to } => {
         //     handlers::handle_convert(data, from.as_str(), to.as_str())
         // }

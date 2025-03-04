@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use uuid::Uuid;
+
 use crate::{AnyhowResult, domain::Address, use_cases::repository::AddressRepository};
 
 /// Address service
@@ -14,27 +16,27 @@ impl AddressService {
     }
 
     /// Get an address by id
-    pub fn get(&self, id: &str) -> AnyhowResult<Option<Address>> {
+    pub fn get(&self, id: Uuid) -> AnyhowResult<Option<Address>> {
         self.repository.get(id)
     }
 
     /// List all addresses
-    pub fn list(&self) -> AnyhowResult<Vec<(String, Address)>> {
+    pub fn list(&self) -> AnyhowResult<Vec<(Uuid, Address)>> {
         self.repository.list()
     }
 
     /// Add a new address
-    pub fn add(&self, id: &str, address: &Address) -> AnyhowResult<()> {
-        self.repository.save(id, address)
+    pub fn add(&self, address: &Address) -> AnyhowResult<Uuid> {
+        self.repository.save(address)
     }
 
     /// Update an address
-    pub fn update(&self, id: &str, address: &Address) -> AnyhowResult<()> {
+    pub fn update(&self, id: Uuid, address: &Address) -> AnyhowResult<()> {
         self.repository.update(id, address)
     }
 
     /// Delete an address
-    pub fn delete(&self, id: &str) -> AnyhowResult<()> {
+    pub fn delete(&self, id: Uuid) -> AnyhowResult<()> {
         self.repository.delete(id)
     }
 }

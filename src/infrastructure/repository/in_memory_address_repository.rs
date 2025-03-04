@@ -4,12 +4,13 @@ use std::{
 };
 
 use anyhow::anyhow;
+use uuid::Uuid;
 
 use crate::{AnyhowResult, domain::Address, use_cases::AddressRepository};
 
 /// Repository for managing addresses in memory
 pub struct InMemoryAddressRepository {
-    addresses: Arc<Mutex<HashMap<String, Address>>>,
+    addresses: Arc<Mutex<HashMap<Uuid, Address>>>,
 }
 
 impl InMemoryAddressRepository {
@@ -28,41 +29,43 @@ impl Default for InMemoryAddressRepository {
 }
 
 impl AddressRepository for InMemoryAddressRepository {
-    fn get(&self, id: &str) -> AnyhowResult<Option<Address>> {
+    fn get(&self, id: Uuid) -> AnyhowResult<Option<Address>> {
         let addresses = self.addresses.lock().unwrap();
 
-        Ok(addresses.get(id).cloned())
+        Ok(addresses.get(&id).cloned())
     }
 
-    fn list(&self) -> AnyhowResult<Vec<(String, Address)>> {
+    fn list(&self) -> AnyhowResult<Vec<(Uuid, Address)>> {
         let addresses = self.addresses.lock().unwrap();
 
         Ok(addresses
             .iter()
-            .map(|(id, address)| (id.clone(), address.clone()))
+            .map(|(id, address)| (*id, address.clone()))
             .collect())
     }
 
-    fn save(&self, id: &str, address: &Address) -> AnyhowResult<()> {
+    fn save(&self, address: &Address) -> AnyhowResult<Uuid> {
+        let new_id = Uuid::new_v4();
         let mut addresses = self.addresses.lock().unwrap();
-        addresses.insert(id.to_string(), address.clone());
+        addresses.insert(new_id, address.clone());
 
-        Ok(())
+        Ok(new_id)
     }
 
-    fn update(&self, id: &str, address: &Address) -> AnyhowResult<()> {
+    fn update(&self, id: Uuid, address: &Address) -> AnyhowResult<()> {
         let mut addresses = self.addresses.lock().unwrap();
 
-        if addresses.contains_key(id) {
-            addresses.insert(id.to_string(), address.clone());
+        if let Some(existing_address) = addresses.get_mut(&id) {
+            *existing_address = address.clone();
+
             Ok(())
         } else {
             Err(anyhow!("Address with ID '{}' not found", id))
         }
     }
-    fn delete(&self, id: &str) -> AnyhowResult<()> {
+    fn delete(&self, id: Uuid) -> AnyhowResult<()> {
         let mut addresses = self.addresses.lock().unwrap();
-        addresses.remove(id);
+        addresses.remove(&id);
 
         Ok(())
     }
@@ -76,7 +79,7 @@ mod tests {
     fn get_should_return_none_for_nonexistent_id() {
         let repository = InMemoryAddressRepository::new();
 
-        let address = repository.get("nonexistent-id").unwrap();
+        let address = repository.get(Uuid::new_v4()).unwrap();
 
         assert!(address.is_none());
     }
@@ -85,36 +88,14 @@ mod tests {
     fn save_should_store_address() {
         let repository = InMemoryAddressRepository::new();
         let address = Address::dummy();
-        let id = "id-1";
 
-        assert!(repository.get(id).unwrap().is_none());
+        assert!(repository.list().unwrap().is_empty());
 
-        repository.save(id, &address).unwrap();
+        let id = repository.save(&address).unwrap();
 
         let retrieved_address = repository.get(id).unwrap();
 
         assert_eq!(retrieved_address.unwrap(), address);
-    }
-
-    #[test]
-    fn save_should_update_existing_address() {
-        let repository = InMemoryAddressRepository::new();
-        let address1 = Address {
-            country: "FR".to_string(),
-            ..Address::dummy()
-        };
-        let address2 = Address {
-            country: "IT".to_string(),
-            ..Address::dummy()
-        };
-        let id = "id-1";
-
-        repository.save(id, &address1).unwrap();
-        repository.save(id, &address2).unwrap();
-
-        let retrieved_address = repository.get(id).unwrap();
-
-        assert_eq!(retrieved_address.unwrap(), address2);
     }
 
     #[test]
@@ -123,8 +104,8 @@ mod tests {
         let address1 = Address::dummy();
         let address2 = Address::dummy();
 
-        repository.save("id-1", &address1).unwrap();
-        repository.save("id-2", &address2).unwrap();
+        let id1 = repository.save(&address1).unwrap();
+        let id2 = repository.save(&address2).unwrap();
 
         let addresses = repository.list().unwrap();
 
@@ -132,12 +113,12 @@ mod tests {
         assert!(
             addresses
                 .iter()
-                .any(|(id, addr)| id == "id-1" && addr == &address1)
+                .any(|(id, addr)| id == &id1 && addr == &address1)
         );
         assert!(
             addresses
                 .iter()
-                .any(|(id, addr)| id == "id-2" && addr == &address2)
+                .any(|(id, addr)| id == &id2 && addr == &address2)
         );
     }
 
@@ -148,9 +129,8 @@ mod tests {
             country: "FR".to_string(),
             ..Address::dummy()
         };
-        let id = "id-1";
 
-        repository.save(id, &address).unwrap();
+        let id = repository.save(&address).unwrap();
 
         let updated_address = Address {
             country: "IT".to_string(),
@@ -169,7 +149,7 @@ mod tests {
         let address = Address::dummy();
 
         repository
-            .update("nonexistent-id", &address)
+            .update(Uuid::new_v4(), &address)
             .expect_err("Update should fail for nonexistent ID");
     }
 
@@ -177,8 +157,7 @@ mod tests {
     fn delete_should_remove_address() {
         let repository = InMemoryAddressRepository::new();
         let address = Address::dummy();
-        let id = "id-1";
-        repository.save(id, &address).unwrap();
+        let id = repository.save(&address).unwrap();
 
         repository.delete(id).unwrap();
 

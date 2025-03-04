@@ -8,18 +8,19 @@ use std::{
 
 use anyhow::{Context, anyhow};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::{AddressRepository, AnyhowResult, domain::Address};
 
 #[derive(Serialize, Deserialize, Default)]
 struct AddressesData {
-    addresses: HashMap<String, Address>,
+    addresses: HashMap<Uuid, Address>,
 }
 
 /// Repository for managing addresses in a file
 pub struct FileAddressRepository {
     file_path: PathBuf,
-    cache: Arc<RwLock<HashMap<String, Address>>>,
+    cache: Arc<RwLock<HashMap<Uuid, Address>>>,
 }
 
 impl FileAddressRepository {
@@ -72,43 +73,44 @@ impl FileAddressRepository {
 }
 
 impl AddressRepository for FileAddressRepository {
-    fn get(&self, id: &str) -> AnyhowResult<Option<Address>> {
+    fn get(&self, id: Uuid) -> AnyhowResult<Option<Address>> {
         let cache = self.cache.read().unwrap();
 
-        Ok(cache.get(id).cloned())
+        Ok(cache.get(&id).cloned())
     }
 
-    fn list(&self) -> AnyhowResult<Vec<(String, Address)>> {
+    fn list(&self) -> AnyhowResult<Vec<(Uuid, Address)>> {
         let cache = self.cache.read().unwrap();
 
         Ok(cache
             .iter()
-            .map(|(id, address)| (id.clone(), address.clone()))
+            .map(|(id, address)| (*id, address.clone()))
             .collect())
     }
 
-    fn save(&self, id: &str, address: &Address) -> AnyhowResult<()> {
+    fn save(&self, address: &Address) -> AnyhowResult<Uuid> {
+        let id = Uuid::new_v4();
         {
             // Use a scope block to ensure the write lock is released before the I/O operation (potentially slow)
             let mut cache = self.cache.write().unwrap();
-            cache.insert(id.to_string(), address.clone());
+            cache.insert(id, address.clone());
         }
 
         self.persist_cache()?;
 
-        Ok(())
+        Ok(id)
     }
 
-    fn update(&self, id: &str, address: &Address) -> AnyhowResult<()> {
+    fn update(&self, id: Uuid, address: &Address) -> AnyhowResult<()> {
         {
             // Use a scope block to ensure the write lock is released before the I/O operation (potentially slow)
             let mut cache = self.cache.write().unwrap();
 
-            if !cache.contains_key(id) {
+            if !cache.contains_key(&id) {
                 return Err(anyhow!("Address with ID '{}' not found", id));
             }
 
-            cache.insert(id.to_string(), address.clone());
+            cache.insert(id, address.clone());
         }
 
         self.persist_cache()?;
@@ -116,11 +118,11 @@ impl AddressRepository for FileAddressRepository {
         Ok(())
     }
 
-    fn delete(&self, id: &str) -> AnyhowResult<()> {
+    fn delete(&self, id: Uuid) -> AnyhowResult<()> {
         {
             // Use a scope block to ensure the write lock is released before the I/O operation (potentially slow)
             let mut cache = self.cache.write().unwrap();
-            cache.remove(id);
+            cache.remove(&id);
         }
 
         self.persist_cache()?;
@@ -166,11 +168,11 @@ mod tests {
     fn new_repository_should_load_existing_file_content() {
         let target_directory = create_temp_dir("new_existing_file");
         let file_path = target_directory.join("addresses.json");
-        let id = "existing-id";
+        let id = Uuid::new_v4();
         let address = Address::dummy();
         {
             let mut addresses = HashMap::new();
-            addresses.insert(id.to_string(), address.clone());
+            addresses.insert(id, address.clone());
             let initial_data = AddressesData { addresses };
 
             let json = serde_json::to_string_pretty(&initial_data).unwrap();
@@ -208,8 +210,8 @@ mod tests {
             country: "IT".to_string(),
             ..Address::dummy()
         };
-        repository.save("id1", &address1).unwrap();
-        repository.save("id2", &address2).unwrap();
+        let id1 = repository.save(&address1).unwrap();
+        let id2 = repository.save(&address2).unwrap();
 
         let addresses = repository.list().unwrap();
 
@@ -217,12 +219,12 @@ mod tests {
         assert!(
             addresses
                 .iter()
-                .any(|(id, addr)| id == "id1" && addr == &address1)
+                .any(|(id, addr)| id == &id1 && addr == &address1)
         );
         assert!(
             addresses
                 .iter()
-                .any(|(id, addr)| id == "id2" && addr == &address2)
+                .any(|(id, addr)| id == &id2 && addr == &address2)
         );
     }
 
@@ -231,12 +233,11 @@ mod tests {
         let target_directory = create_temp_dir("save_memory_cache");
         let file_path = target_directory.join("addresses.json");
         let repository = FileAddressRepository::new(&file_path).unwrap();
-        let id = "id-1";
         let address = Address::dummy();
 
-        assert!(repository.get(id).unwrap().is_none());
+        assert!(repository.list().unwrap().is_empty());
 
-        repository.save(id, &address).unwrap();
+        let id = repository.save(&address).unwrap();
 
         let retrieved_address = repository.get(id).unwrap();
         assert_eq!(retrieved_address.unwrap(), address);
@@ -247,18 +248,17 @@ mod tests {
         let target_directory = create_temp_dir("save_persist_file");
         let file_path = target_directory.join("addresses.json");
         let repository = FileAddressRepository::new(&file_path).unwrap();
-        let id = "id-1";
         let address = Address::dummy();
         let initial_content = fs::read_to_string(&file_path).unwrap();
         let initial_data: AddressesData = serde_json::from_str(&initial_content).unwrap();
 
-        assert!(!initial_data.addresses.contains_key(id));
+        assert!(initial_data.addresses.is_empty());
 
-        repository.save(id, &address).unwrap();
+        let id = repository.save(&address).unwrap();
 
         let content = fs::read_to_string(&file_path).unwrap();
         let data: AddressesData = serde_json::from_str(&content).unwrap();
-        assert_eq!(data.addresses.get(id).unwrap(), &address);
+        assert_eq!(data.addresses.get(&id).unwrap(), &address);
     }
 
     #[test]
@@ -267,7 +267,6 @@ mod tests {
         let file_path = target_directory.join("addresses.json");
         let repository = FileAddressRepository::new(&file_path).unwrap();
 
-        let id = "id-1";
         let initial_address = Address {
             country: "FR".to_string(),
             ..Address::dummy()
@@ -276,7 +275,7 @@ mod tests {
             country: "IT".to_string(),
             ..initial_address.clone()
         };
-        repository.save(id, &initial_address).unwrap();
+        let id = repository.save(&initial_address).unwrap();
 
         repository.update(id, &updated_address).unwrap();
 
@@ -290,7 +289,6 @@ mod tests {
         let file_path = target_directory.join("addresses.json");
         let repository = FileAddressRepository::new(&file_path).unwrap();
 
-        let id = "id-1";
         let initial_address = Address {
             country: "FR".to_string(),
             ..Address::dummy()
@@ -299,13 +297,13 @@ mod tests {
             country: "IT".to_string(),
             ..initial_address.clone()
         };
-        repository.save(id, &initial_address).unwrap();
+        let id = repository.save(&initial_address).unwrap();
 
         repository.update(id, &updated_address).unwrap();
 
         let content = fs::read_to_string(&file_path).unwrap();
         let data: AddressesData = serde_json::from_str(&content).unwrap();
-        assert_eq!(data.addresses.get(id).unwrap(), &updated_address);
+        assert_eq!(data.addresses.get(&id).unwrap(), &updated_address);
     }
 
     #[test]
@@ -315,7 +313,7 @@ mod tests {
         let repository = FileAddressRepository::new(&file_path).unwrap();
 
         repository
-            .update("nonexistent-id", &Address::dummy())
+            .update(Uuid::new_v4(), &Address::dummy())
             .expect_err("Should fail for nonexistent id");
     }
 
@@ -325,8 +323,7 @@ mod tests {
         let file_path = target_directory.join("addresses.json");
 
         let repository = FileAddressRepository::new(&file_path).unwrap();
-        let id = "id-1";
-        repository.save(id, &Address::dummy()).unwrap();
+        let id = repository.save(&Address::dummy()).unwrap();
 
         repository.delete(id).unwrap();
 
@@ -340,14 +337,13 @@ mod tests {
         let file_path = target_directory.join("addresses.json");
 
         let repository = FileAddressRepository::new(&file_path).unwrap();
-        let id = "id-1";
-        repository.save(id, &Address::dummy()).unwrap();
+        let id = repository.save(&Address::dummy()).unwrap();
 
         repository.delete(id).unwrap();
 
         let content = fs::read_to_string(&file_path).unwrap();
         let data: AddressesData = serde_json::from_str(&content).unwrap();
-        assert!(!data.addresses.contains_key(id));
+        assert!(!data.addresses.contains_key(&id));
     }
 
     #[test]
@@ -357,7 +353,7 @@ mod tests {
         let repository = FileAddressRepository::new(&file_path).unwrap();
 
         repository
-            .delete("nonexistent-id")
+            .delete(Uuid::new_v4())
             .expect("Deleting non-existent ID should not fail");
     }
 }

@@ -3,7 +3,7 @@ use std::{path::PathBuf, str::FromStr, sync::Arc};
 use clap::{Parser, Subcommand, ValueEnum};
 use uuid::Uuid;
 
-use crate::{AddressService, AnyhowResult, infrastructure::FileAddressRepository};
+use crate::{AddressService, AnyhowResult, repository::FileAddressRepository};
 
 use super::AddressHandler;
 

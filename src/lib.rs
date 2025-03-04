@@ -5,13 +5,13 @@
 //! TODO
 
 mod domain;
-mod infrastructure;
 pub mod presenter;
+mod repository;
 mod use_cases;
 
 pub use domain::*;
-pub use infrastructure::*;
 pub use presenter::*;
+pub use repository::*;
 pub use use_cases::*;
 
 /// Alias for [anyhow::Error]

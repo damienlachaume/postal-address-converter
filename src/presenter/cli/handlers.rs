@@ -55,7 +55,6 @@ impl AddressHandler {
                 let addresses: Vec<(Uuid, String)> = addresses
                     .iter()
                     .map(|(id, address)| {
-                        // Convert the internal address into FrenchAddress and format it.
                         address
                             .clone()
                             .try_into()
@@ -68,8 +67,9 @@ impl AddressHandler {
                 let addresses: Vec<(Uuid, String)> = addresses
                     .iter()
                     .map(|(id, address)| {
-                        // Convert the internal address into ISO20022Address and format it.
-                        Ok((*id, format_iso20022_address(&address.clone().into())))
+                        let iso: ISO20022Address = address.clone().into();
+
+                        Ok((*id, format_iso20022_address(&iso)))
                     })
                     .collect::<Result<_, anyhow::Error>>()?;
                 serde_json::to_string_pretty(&addresses)?

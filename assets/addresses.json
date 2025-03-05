@@ -1,0 +1,26 @@
+{
+  "addresses": {
+    "6fb1875a-15b7-4f1f-9fd0-c68ebbaeda20": {
+      "name": "Monsieur Jean DURAND",
+      "floor": null,
+      "post_box": null,
+      "room": null,
+      "street_name": "25D RUE DES FLEURS",
+      "town_name": "LIBOURNE",
+      "town_location_name": null,
+      "post_code": "33500",
+      "country": "FR"
+    },
+    "7fb2cf66-1110-423c-871a-36735eca7519": {
+      "name": "Monsieur Jean DELHOURME",
+      "floor": "Entrée A Bâtiment Jonquille",
+      "post_box": null,
+      "room": "Chez Mireille COPEAU Appartement 2",
+      "street_name": "25 RUE DE L’EGLISE",
+      "town_name": "MIOS",
+      "town_location_name": "CAUDOS",
+      "post_code": "33380",
+      "country": "FR"
+    }
+  }
+}

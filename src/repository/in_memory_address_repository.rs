@@ -15,7 +15,7 @@ pub struct InMemoryAddressRepository {
 
 impl InMemoryAddressRepository {
     /// Create a new [InMemoryAddressRepository]
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             addresses: Arc::new(Mutex::new(HashMap::new())),
         }

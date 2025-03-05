@@ -36,11 +36,7 @@ pub enum AddressFormat {
 enum Command {
     /// Add a new address
     Add {
-        /// Address format (french or iso20022)
-        #[clap(short, long, value_enum)]
-        format: AddressFormat,
-
-        /// Address data as JSON string
+        /// Address internal data as JSON string
         #[clap(short, long)]
         data: String,
     },
@@ -69,11 +65,7 @@ enum Command {
         #[clap(short, long)]
         id: String,
 
-        /// Address format (french or iso20022)
-        #[clap(short, long, value_enum)]
-        format: AddressFormat,
-
-        /// Address data as JSON string
+        /// Address internaldata as JSON string
         #[clap(short, long)]
         data: String,
     },
@@ -109,11 +101,11 @@ pub fn run() -> AnyhowResult<()> {
     let handler = AddressHandler::new(service);
 
     match cli.command {
-        Command::Get { id, format } => handler.get(Uuid::from_str(&id)?, format),
-        Command::List { format } => handler.list(format),
-        Command::Add { format, data } => handler.add(format, data),
-        Command::Update { id, format, data } => handler.update(format, Uuid::from_str(&id)?, data),
-        Command::Delete { id } => handler.delete(Uuid::from_str(&id)?),
-        Command::Convert { data, from, to } => handler.convert(data, from, to),
+        Command::Get { id, format } => handler.handle_get(Uuid::from_str(&id)?, format),
+        Command::List { format } => handler.handle_list(format),
+        Command::Add { data } => handler.handle_add(data),
+        Command::Update { id, data } => handler.handle_update(Uuid::from_str(&id)?, data),
+        Command::Delete { id } => handler.handle_delete(Uuid::from_str(&id)?),
+        Command::Convert { data, from, to } => handler.handle_convert(data, from, to),
     }
 }

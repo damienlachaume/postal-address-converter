@@ -1,9 +1,7 @@
-use anyhow::{Context, Result, anyhow};
+use anyhow::Context;
 use uuid::Uuid;
 
-use crate::{
-    Address, AddressConverter, AddressService, AnyhowResult, FrenchAddress, ISO20022Address,
-};
+use crate::{Address, AddressService, AnyhowResult, FrenchAddress, ISO20022Address};
 
 use super::AddressFormat;
 
@@ -125,7 +123,7 @@ impl AddressHandler {
     }
 
     /// Delete an address
-    pub fn handle_delete(&self, id: Uuid) -> Result<()> {
+    pub fn handle_delete(&self, id: Uuid) -> AnyhowResult<()> {
         self.service
             .delete(id)
             .with_context(|| "Failed to delete address")?;
@@ -135,37 +133,37 @@ impl AddressHandler {
         Ok(())
     }
 
-    /// Convert an address between formats
-    pub fn handle_convert(
-        &self,
-        data: String,
-        from: AddressFormat,
-        to: AddressFormat,
-    ) -> AnyhowResult<()> {
-        if from == to {
-            return Err(anyhow!("Source and target formats are the same"));
-        }
+    // /// Convert an address between formats
+    // pub fn handle_convert(
+    //     &self,
+    //     data: String,
+    //     from: AddressFormat,
+    //     to: AddressFormat,
+    // ) -> AnyhowResult<()> {
+    //     if from == to {
+    //         return Err(anyhow!("Source and target formats are the same"));
+    //     }
 
-        match (from, to) {
-            (AddressFormat::French, AddressFormat::Iso20022) => {
-                let address: FrenchAddress = serde_json::from_str(&data)?;
-                let iso: ISO20022Address = AddressConverter::french_to_iso(address)?;
+    //     match (from, to) {
+    //         (AddressFormat::French, AddressFormat::Iso20022) => {
+    //             let address: FrenchAddress = serde_json::from_str(&data)?;
+    //             let iso: ISO20022Address = AddressConverter::french_to_iso(address)?;
 
-                println!("{}", iso);
-            }
-            (AddressFormat::Iso20022, AddressFormat::French) => {
-                let address: ISO20022Address = serde_json::from_str(&data)?;
-                let french: FrenchAddress = AddressConverter::iso_to_french(address)?;
+    //             println!("{}", iso);
+    //         }
+    //         (AddressFormat::Iso20022, AddressFormat::French) => {
+    //             let address: ISO20022Address = serde_json::from_str(&data)?;
+    //             let french: FrenchAddress = AddressConverter::iso_to_french(address)?;
 
-                println!("{}", french);
-            }
-            _ => {
-                return Err(anyhow!("Unsupported format conversion"));
-            }
-        }
+    //             println!("{}", french);
+    //         }
+    //         _ => {
+    //             return Err(anyhow!("Unsupported format conversion"));
+    //         }
+    //     }
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }
 
 #[cfg(test)]

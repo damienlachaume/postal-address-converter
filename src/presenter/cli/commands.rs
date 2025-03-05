@@ -76,21 +76,20 @@ enum Command {
         #[clap(short, long)]
         id: String,
     },
+    // /// Convert an address between formats (not implemented yet)
+    // Convert {
+    //     /// Source
+    //     #[clap(short, long)]
+    //     data: String,
 
-    /// Convert an address between formats (not implemented yet)
-    Convert {
-        /// Source
-        #[clap(short, long)]
-        data: String,
+    //     /// Source format
+    //     #[clap(short, long, value_enum)]
+    //     from: AddressFormat,
 
-        /// Source format
-        #[clap(short, long, value_enum)]
-        from: AddressFormat,
-
-        /// Target format
-        #[clap(short, long, value_enum)]
-        to: AddressFormat,
-    },
+    //     /// Target format
+    //     #[clap(short, long, value_enum)]
+    //     to: AddressFormat,
+    // },
 }
 
 /// Run the CLI
@@ -106,6 +105,6 @@ pub fn run() -> AnyhowResult<()> {
         Command::Add { data } => handler.handle_add(data),
         Command::Update { id, data } => handler.handle_update(Uuid::from_str(&id)?, data),
         Command::Delete { id } => handler.handle_delete(Uuid::from_str(&id)?),
-        Command::Convert { data, from, to } => handler.handle_convert(data, from, to),
+        // Command::Convert { data, from, to } => handler.handle_convert(data, from, to),
     }
 }
